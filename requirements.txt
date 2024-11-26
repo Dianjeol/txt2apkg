@@ -1,0 +1,6 @@
+flask==3.0.0
+genanki==0.13.0
+pandas==2.1.1
+werkzeug==3.0.1
+gunicorn==21.2.0
+
