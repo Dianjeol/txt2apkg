@@ -1,4 +1,5 @@
-Flask==2.3.3
-gunicorn==20.2.0
-pandas==1.5.3
-numpy==1.23.5
+flask==3.0.0
+genanki==0.13.0
+werkzeug==3.0.1
+gunicorn==21.2.0
+

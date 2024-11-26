@@ -1,6 +1,5 @@
-from flask import Flask, render_template, request, send_file, after_this_request
+from flask import Flask, render_template, request, send_file
 import genanki
-import pandas as pd
 import io
 import csv
 import os
@@ -17,6 +16,15 @@ def detect_delimiter(text):
     counts = [text.count(d) for d in delimiters]
     return delimiters[counts.index(max(counts))] if max(counts) > 0 else '\t'
 
+def parse_content(content, delimiter):
+    """Parse the content into a list of card pairs"""
+    reader = csv.reader(io.StringIO(content), delimiter=delimiter)
+    cards = []
+    for row in reader:
+        if len(row) >= 2:
+            cards.append([row[0], row[1]])
+    return cards
+
 def create_anki_deck(data, deck_name="My Flashcards"):
     """Create an Anki deck from the provided data"""
     model = genanki.Model(
@@ -26,13 +34,99 @@ def create_anki_deck(data, deck_name="My Flashcards"):
             {'name': 'Front'},
             {'name': 'Back'},
         ],
-        templates=[
-            {
-                'name': 'Card 1',
-                'qfmt': '{{Front}}',
-                'afmt': '{{FrontSide}}<hr id="answer">{{Back}}',
-            },
-        ])
+        templates=[{
+            'name': 'Card 1',
+            'qfmt': '''
+                <div id="kard">
+                    <div class="front">{{Front}}</div>
+                </div>
+            ''',
+            'afmt': '''
+                <div id="kard">
+                    <div class="front">{{Front}}</div>
+                    <hr id="answer">
+                    <div class="back">{{Back}}</div>
+                </div>
+            ''',
+        }],
+        css='''
+            html { overflow: scroll; overflow-x: hidden; }
+            #kard {
+                padding: 0px 0px;
+                max-width: 700px;
+                margin: 0 auto;
+                word-wrap: break-word;
+            }
+            .card {
+                font-family: Menlo, baskerville, sans;
+                font-size: 18px;
+                text-align: center;
+                color: #D7DEE9;
+                line-height: 1.6em;
+                background-color: #333B45;
+            }
+            .cloze, .cloze b, .cloze u, .cloze i { 
+                font-weight: bold; 
+                color: MediumSeaGreen !important;
+            }
+            #extra, #extra i { 
+                font-size: 15px; 
+                color:#D7DEE9; 
+                font-style: italic; 
+            }
+            .tags { 
+                color: #A6ABB9;
+                opacity: 1;
+                font-size: 10px; 
+                width: 100%;
+                text-align: center;
+                text-transform: uppercase; 
+                position: fixed; 
+                padding: 0; 
+                top:0;  
+                right: 0;
+            }
+            .tags:hover { 
+                opacity: 1; 
+                position: fixed;
+            }
+            img { 
+                display: block; 
+                max-width: 100%; 
+                max-height: none; 
+                margin-left: auto; 
+                margin: 10px auto 10px auto;
+            }
+            tr {
+                font-size: 12px; 
+            }
+            b { color: #C695C6 !important; }
+            u { text-decoration: none; color: #5EB3B3;}
+            i  { color: IndianRed; }
+            a { 
+                color: LightGray !important; 
+                text-decoration: none; 
+                font-size: 10px; 
+                font-style: normal; 
+            }
+            .mobile .card { 
+                color: #D7DEE9; 
+                background-color: #333B45; 
+            } 
+            .mobile .tags { 
+                opacity: 1; 
+                position: relative;
+            }
+            hr {
+                border: none;
+                border-top: 1px solid #D7DEE9;
+                margin: 20px 0;
+            }
+            .front, .back {
+                padding: 20px;
+            }
+        '''
+    )
 
     deck = genanki.Deck(2059400110, deck_name)
 
@@ -51,7 +145,6 @@ def index():
         deck_name = request.form.get('deck_name', 'My Flashcards')
         
         try:
-            # Get content either from file upload or text input
             content = ""
             if 'file' in request.files and request.files['file'].filename:
                 file = request.files['file']
@@ -62,32 +155,21 @@ def index():
             if not content.strip():
                 return render_template('index.html', error="Please provide input text or upload a file")
 
-            # Detect delimiter and parse content
             delimiter = detect_delimiter(content)
-            df = pd.read_csv(io.StringIO(content), 
-                           sep=delimiter, 
-                           header=None, 
-                           encoding='utf-8',
-                           quoting=csv.QUOTE_MINIMAL,
-                           on_bad_lines='skip')
+            data = parse_content(content, delimiter)
 
-            if len(df.columns) < 2:
+            if not data:
                 return render_template('index.html', 
                                      error="Input must have at least 2 columns (front and back of cards)")
 
-            # Create deck from data
-            data = df.iloc[:, 0:2].values.tolist()
             deck = create_anki_deck(data, deck_name)
             
-            # Create temporary file
             temp_dir = tempfile.mkdtemp()
             temp_path = os.path.join(temp_dir, f"{secure_filename(deck_name)}.apkg")
             
-            # Write deck to temporary file
             package = genanki.Package(deck)
             package.write_to_file(temp_path)
             
-            # Send file
             try:
                 return send_file(
                     temp_path,
@@ -96,7 +178,6 @@ def index():
                     mimetype='application/octet-stream'
                 )
             finally:
-                # Clean up temporary file
                 try:
                     os.remove(temp_path)
                     os.rmdir(temp_dir)
