@@ -1,0 +1,88 @@
+/* Erst das static Verzeichnis erstellen:
+mkdir -p ~/basic_flask/static */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    background-color: #333B45;
+    color: #D7DEE9;
+}
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #272C34;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+h1 {
+    color: #5EB3B3;
+    text-align: center;
+    margin-bottom: 30px;
+}
+.form-group {
+    margin-bottom: 20px;
+}
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #C695C6;
+}
+input[type="text"],
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 16px;
+    background-color: #333B45;
+    color: #D7DEE9;
+}
+textarea {
+    height: 200px;
+    resize: vertical;
+}
+.submit-btn {
+    background-color: #5EB3B3;
+    color: #272C34;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    transition: background-color 0.3s;
+}
+.submit-btn:hover {
+    background-color: #4A9090;
+}
+.error {
+    color: IndianRed;
+    margin-top: 10px;
+    text-align: center;
+}
+.success {
+    color: MediumSeaGreen;
+    margin-top: 10px;
+    text-align: center;
+}
+.instructions {
+    background-color: #2C313A;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+input[type="file"] {
+    background-color: #333B45;
+    color: #D7DEE9;
+    padding: 10px;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+

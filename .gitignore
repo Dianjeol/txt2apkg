@@ -1,0 +1,7 @@
+ENV/
+__pycache__/
+backup_old/
+uwsgi.log
+*.log
+test.txt
+uwsgi.ini

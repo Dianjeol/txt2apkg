@@ -1,0 +1,16 @@
+name: Deploy
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Deploy to PythonAnywhere
+        env:
+          PA_TOKEN: ${{ secrets.PA_TOKEN }}
+        run: |
+          curl -X POST \
+          --header "Authorization: Token ${PA_TOKEN}" \
+          https://www.pythonanywhere.com/api/v0/user/Dianjeol/webapps/Dianjeol.pythonanywhere.com/reload/

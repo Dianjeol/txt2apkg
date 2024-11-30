@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anki Konverter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#5EB3B3">
+</head>
+<body>
+    <div class="container">
+        <h1>Anki Konverter</h1>
+        <div class="instructions">
+            <p>Lade eine TXT- oder CSV-Datei hoch, um sie in eine APKG-Datei umzuwandeln.</p>
+        </div>
+        <form id="convertForm" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="deck_name">Name des Decks:</label>
+                <input type="text" id="deck_name" name="deck_name" value="Anki-Karten" required>
+            </div>
+            <div class="form-group">
+                <label for="file">Datei auswählen:</label>
+                <input type="file" id="file" name="file" accept=".txt,.csv" required>
+            </div>
+            <button type="submit" class="submit-btn">Konvertieren</button>
+        </form>
+        <div id="status" class="status"></div>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
