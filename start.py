@@ -1,36 +1,10 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, jsonify
 import pandas as pd
 import genanki
 import io
 import os
 import tempfile
 import csv
-from flask import jsonify
-
-@app.route('/api/convert', methods=['POST'])
-def api_convert():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['file']
-    deck_name = request.form.get('deck_name', 'Anki-Karten')
-    
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    if not file.filename.endswith(('.txt', '.csv')):
-        return jsonify({'error': 'Invalid file format'}), 400
-    
-    try:
-        output_path = create_deck_from_file(file, deck_name)
-        return send_file(output_path, 
-                        as_attachment=True,
-                        download_name=f"{deck_name}.apkg",
-                        mimetype='application/octet-stream')
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-
-
 
 app = Flask(__name__)
 
@@ -193,6 +167,29 @@ def convert():
                         download_name=f"{deck_name}.apkg")
     except Exception as e:
         return str(e), 400
+
+@app.route('/api/convert', methods=['POST'])
+def api_convert():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    
+    file = request.files['file']
+    deck_name = request.form.get('deck_name', 'Anki-Karten')
+    
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if not file.filename.endswith(('.txt', '.csv')):
+        return jsonify({'error': 'Invalid file format'}), 400
+    
+    try:
+        output_path = create_deck_from_file(file, deck_name)
+        return send_file(output_path, 
+                        as_attachment=True,
+                        download_name=f"{deck_name}.apkg",
+                        mimetype='application/octet-stream')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
