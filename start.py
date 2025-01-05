@@ -13,15 +13,16 @@ import shutil
 
 app = Flask(__name__)
 
-# Konfiguration für temporäre Dateien
+# Konfiguration
 TEMP_DIR = '/tmp'  # Für Python Anywhere
 FILES_DIR = os.path.join(TEMP_DIR, 'anki_files')
 os.makedirs(FILES_DIR, exist_ok=True)
 
-# Dictionary zum Speichern der Datei-Informationen
+# Dictionary zum Speichern der temporären Dateien
 temp_files = {}
 
 def detect_separator(file):
+    """Erkennt den Separator in der CSV/TXT Datei"""
     first_line = file.readline().decode('utf-8').strip()
     file.seek(0)
     
@@ -31,8 +32,9 @@ def detect_separator(file):
             return sep
     return '\t'
 
-def create_deck_from_file(file, deck_name):
-    model = genanki.Model(
+def create_anki_model():
+    """Erstellt das Anki Kartenmodell"""
+    return genanki.Model(
         1607392319,
         'Simple Model',
         fields=[
@@ -70,58 +72,6 @@ def create_deck_from_file(file, deck_name):
                 line-height: 1.6em;
                 background-color: #333B45;
             }
-            .cloze, .cloze b, .cloze u, .cloze i { 
-                font-weight: bold; 
-                color: MediumSeaGreen !important;
-            }
-            #extra, #extra i { 
-                font-size: 15px; 
-                color:#D7DEE9; 
-                font-style: italic; 
-            }
-            .tags { 
-                color: #A6ABB9;
-                opacity: 1;
-                font-size: 10px; 
-                width: 100%;
-                text-align: center;
-                text-transform: uppercase; 
-                position: fixed; 
-                padding: 0; 
-                top:0;  
-                right: 0;
-            }
-            .tags:hover { 
-                opacity: 1; 
-                position: fixed;
-            }
-            img { 
-                display: block; 
-                max-width: 100%; 
-                max-height: none; 
-                margin-left: auto; 
-                margin: 10px auto 10px auto;
-            }
-            tr {
-                font-size: 12px; 
-            }
-            b { color: #C695C6 !important; }
-            u { text-decoration: none; color: #5EB3B3;}
-            i  { color: IndianRed; }
-            a { 
-                color: LightGray !important; 
-                text-decoration: none; 
-                font-size: 10px; 
-                font-style: normal; 
-            }
-            .mobile .card { 
-                color: #D7DEE9; 
-                background-color: #333B45; 
-            } 
-            .mobile .tags { 
-                opacity: 1; 
-                position: relative;
-            }
             hr {
                 border: none;
                 border-top: 1px solid #D7DEE9;
@@ -133,6 +83,9 @@ def create_deck_from_file(file, deck_name):
         '''
     )
 
+def create_deck_from_file(file, deck_name):
+    """Erstellt ein Anki-Deck aus einer Datei"""
+    model = create_anki_model()
     deck = genanki.Deck(2059400110, deck_name)
 
     separator = detect_separator(file)
@@ -144,6 +97,36 @@ def create_deck_from_file(file, deck_name):
         note = genanki.Note(
             model=model,
             fields=[str(row['front']), str(row['back'])]
+        )
+        deck.add_note(note)
+
+    temp_dir = tempfile.mkdtemp()
+    output_path = os.path.join(temp_dir, f"{deck_name}.apkg")
+    
+    package = genanki.Package(deck)
+    package.write_to_file(output_path)
+    
+    return output_path
+
+def create_deck_from_vocabulary(vocabulary, deck_name):
+    """Erstellt ein Anki-Deck aus einem Vokabel-Dictionary oder einer Liste"""
+    model = create_anki_model()
+    deck = genanki.Deck(2059400110, deck_name)
+
+    # Verarbeite verschiedene Eingabeformate
+    if isinstance(vocabulary, dict):
+        # Format: {"Hallo": "Hello", "Welt": "World"}
+        items = vocabulary.items()
+    elif isinstance(vocabulary, list):
+        # Format: [["Hallo", "Hello"], ["Welt", "World"]]
+        items = vocabulary
+    else:
+        raise ValueError("Ungültiges Vokabelformat")
+
+    for front, back in items:
+        note = genanki.Note(
+            model=model,
+            fields=[str(front), str(back)]
         )
         deck.add_note(note)
 
@@ -174,6 +157,7 @@ def index():
 
 @app.route('/convert', methods=['POST'])
 def convert():
+    """Endpunkt für Datei-Upload über Web-Interface"""
     if 'file' not in request.files:
         return 'Keine Datei hochgeladen', 400
     
@@ -196,6 +180,7 @@ def convert():
 
 @app.route('/api/convert', methods=['POST'])
 def api_convert():
+    """API-Endpunkt für Datei-Upload"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
@@ -209,26 +194,20 @@ def api_convert():
         return jsonify({'error': 'Invalid file format'}), 400
     
     try:
-        # Generiere eine eindeutige ID für die Datei
-        file_id = str(uuid.uuid4())
-        
-        # Erstelle die Anki-Datei
         output_path = create_deck_from_file(file, deck_name)
         
-        # Verschiebe die Datei in den permanenten Speicherort
+        # Generiere eindeutige ID und speichere die Datei
+        file_id = str(uuid.uuid4())
         permanent_path = os.path.join(FILES_DIR, f"{file_id}.apkg")
         shutil.move(output_path, permanent_path)
         
-        # Speichere die Datei-Informationen
-        expiry_time = datetime.now() + timedelta(hours=24)  # Link läuft nach 24 Stunden ab
+        # Speichere Datei-Informationen
+        expiry_time = datetime.now() + timedelta(hours=24)
         temp_files[file_id] = {
             'path': permanent_path,
             'expires': expiry_time,
             'deck_name': deck_name
         }
-        
-        # Cleanup alte Dateien
-        cleanup_old_files()
         
         # Generiere Download-URL
         download_url = url_for('download_file', file_id=file_id, _external=True)
@@ -244,8 +223,51 @@ def api_convert():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
+@app.route('/api/convert-direct', methods=['POST'])
+def api_convert_direct():
+    """API-Endpunkt für direkte Vokabeleingabe"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'vocabulary' not in data:
+            return jsonify({'error': 'No vocabulary data provided'}), 400
+            
+        deck_name = data.get('deck_name', 'Anki-Karten')
+        vocabulary = data['vocabulary']
+        
+        # Erstelle Anki-Deck direkt aus den Vokabeln
+        output_path = create_deck_from_vocabulary(vocabulary, deck_name)
+        
+        # Generiere eindeutige ID und speichere die Datei
+        file_id = str(uuid.uuid4())
+        permanent_path = os.path.join(FILES_DIR, f"{file_id}.apkg")
+        shutil.move(output_path, permanent_path)
+        
+        # Speichere Datei-Informationen
+        expiry_time = datetime.now() + timedelta(hours=24)
+        temp_files[file_id] = {
+            'path': permanent_path,
+            'expires': expiry_time,
+            'deck_name': deck_name
+        }
+        
+        # Generiere Download-URL
+        download_url = url_for('download_file', file_id=file_id, _external=True)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Deck created successfully',
+            'download_url': download_url,
+            'expires': expiry_time.isoformat(),
+            'deck_name': deck_name
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 @app.route('/download/<file_id>')
 def download_file(file_id):
+    """Endpunkt für das Herunterladen der generierten Dateien"""
     if file_id not in temp_files:
         return jsonify({'error': 'File not found or expired'}), 404
     
@@ -269,6 +291,7 @@ def download_file(file_id):
 
 @app.before_request
 def before_request():
+    """Führt Cleanup vor jeder Anfrage durch"""
     cleanup_old_files()
 
 if __name__ == '__main__':
