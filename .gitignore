@@ -5,3 +5,4 @@ uwsgi.log
 *.log
 test.txt
 uwsgi.ini
+.env
