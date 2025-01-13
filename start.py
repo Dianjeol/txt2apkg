@@ -14,11 +14,11 @@ import shutil
 app = Flask(__name__)
 
 # Konfiguration
-TEMP_DIR = '/tmp'  # Für Python Anywhere
+TEMP_DIR = '/tmp'  # FÃ¼r Python Anywhere
 FILES_DIR = os.path.join(TEMP_DIR, 'anki_files')
 os.makedirs(FILES_DIR, exist_ok=True)
 
-# Dictionary zum Speichern der temporären Dateien
+# Dictionary zum Speichern der temporÃ¤ren Dateien
 temp_files = {}
 
 def detect_separator(file):
@@ -121,7 +121,7 @@ def create_deck_from_vocabulary(vocabulary, deck_name):
         # Format: [["Hallo", "Hello"], ["Welt", "World"]]
         items = vocabulary
     else:
-        raise ValueError("Ungültiges Vokabelformat")
+        raise ValueError("UngÃ¼ltiges Vokabelformat")
 
     for front, back in items:
         note = genanki.Note(
@@ -139,7 +139,7 @@ def create_deck_from_vocabulary(vocabulary, deck_name):
     return output_path
 
 def cleanup_old_files():
-    """Entfernt abgelaufene temporäre Dateien"""
+    """Entfernt abgelaufene temporÃ¤re Dateien"""
     current_time = datetime.now()
     expired_files = [file_id for file_id, info in temp_files.items() 
                     if info['expires'] < current_time]
@@ -157,7 +157,7 @@ def index():
 
 @app.route('/convert', methods=['POST'])
 def convert():
-    """Endpunkt für Datei-Upload über Web-Interface"""
+    """Endpunkt fÃ¼r Datei-Upload Ã¼ber Web-Interface"""
     if 'file' not in request.files:
         return 'Keine Datei hochgeladen', 400
     
@@ -165,10 +165,10 @@ def convert():
     deck_name = request.form.get('deck_name', 'Anki-Karten')
     
     if file.filename == '':
-        return 'Keine Datei ausgewählt', 400
+        return 'Keine Datei ausgewÃ¤hlt', 400
     
     if not file.filename.endswith(('.txt', '.csv')):
-        return 'Ungültiges Dateiformat', 400
+        return 'UngÃ¼ltiges Dateiformat', 400
     
     try:
         output_path = create_deck_from_file(file, deck_name)
@@ -180,7 +180,7 @@ def convert():
 
 @app.route('/api/convert', methods=['POST'])
 def api_convert():
-    """API-Endpunkt für Datei-Upload"""
+    """API-Endpunkt fÃ¼r Datei-Upload"""
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
@@ -225,7 +225,7 @@ def api_convert():
 
 @app.route('/api/convert-direct', methods=['POST'])
 def api_convert_direct():
-    """API-Endpunkt für direkte Vokabeleingabe"""
+    """API-Endpunkt fÃ¼r direkte Vokabeleingabe"""
     try:
         data = request.get_json()
         
@@ -267,7 +267,7 @@ def api_convert_direct():
 
 @app.route('/download/<file_id>')
 def download_file(file_id):
-    """Endpunkt für das Herunterladen der generierten Dateien"""
+    """Endpunkt fÃ¼r das Herunterladen der generierten Dateien"""
     if file_id not in temp_files:
         return jsonify({'error': 'File not found or expired'}), 404
     
@@ -291,7 +291,7 @@ def download_file(file_id):
 
 @app.before_request
 def before_request():
-    """Führt Cleanup vor jeder Anfrage durch"""
+    """FÃ¼hrt Cleanup vor jeder Anfrage durch"""
     cleanup_old_files()
 
 if __name__ == '__main__':
